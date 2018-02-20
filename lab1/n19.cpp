@@ -178,7 +178,7 @@ int main() {
 	cout << "Максимальный результат: " << maxValue << " шт." << endl;
 	cout << "Лучшие заготовители: " << endl;
 
-	for (int i = 0; i < o_count; ++i) {
+	for (int i = 0; i < o_count; ++i) { 
 		for (int j = 0; j < result[i].size(); ++j) {
 			if (result[i][j].value == maxValue) {
 				cout << "\tОтделение № " << (i + 1) << ": " << result[i][j] << "." << endl;
