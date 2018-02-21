@@ -77,6 +77,13 @@ int main() {
 	cout << "Введите количество потоков: ";
 	cin >> t_count;
 
+	if (t_count < 1) {
+		cout << "Число потоков не может быть меньше 1." << endl;
+		system("pause");
+
+		return -1;
+	}
+
 	cout << "Введите количество отделений: ";
 	cin >> o_count;
 
@@ -186,8 +193,7 @@ int main() {
 		}
 	}
 	
-	cin.ignore();
-	cin.get();
+	system("pause");
 
 	return 0;
 }
