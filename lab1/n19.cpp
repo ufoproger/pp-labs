@@ -118,45 +118,37 @@ int main() {
 	}
 
 	vector < DWORD > dwThreadId(t_count);
-	vector < DWORD > dwResult(t_count);
 	vector < HANDLE > hThread(t_count);
-
-	// Предполагаемое количество отделений, которое будет обрабатывать 1 поток.
-	int step = o_count / t_count;
-
-	// Если не удаётся распределить отделения равномерно по потокам, накидываем ещё по одному отделению первым потокам.
-	if (o_count % t_count) {
-		step += 1;
-	}
-
-	// Если отделений меньше, чем потоков, то распихиваем по одному отделению на поток (кому хватит).
-	if (step < 1) {
-		step = 1;
-	}
 
 	vector < FuncParam > x(t_count);
 	result.resize(o_count);
 
-	for (int o_i = 0, t_i = 0; o_i < o_count; o_i += step, ++t_i) {
-		x[t_i].thread_num = t_i;
-		x[t_i].from = o_i;
-		x[t_i].to = min(o_i + step, o_count);
+	vector < int > steps(t_count, o_count / t_count);
 
-		hThread[t_i] = CreateThread(NULL, 0, ThreadFunc, (PVOID)&x[t_i], 0, &dwThreadId[t_i]);
+	for (int i = 0; i < o_count % t_count; ++i) {
+		steps[i]++;
+	}
 
-		if (!hThread[t_i]) {
-			cout << "Main process: thread " << t_i << " not execute!" << endl;
+	for (int i = 0, o_i = 0; i < t_count; o_i += steps[i], ++i) {
+		x[i].thread_num = i;
+		x[i].from = o_i;
+		x[i].to = min(o_i + steps[i], o_count);
+
+		hThread[i] = CreateThread(NULL, 0, ThreadFunc, (PVOID)&x[i], 0, &dwThreadId[i]);
+
+		if (!hThread[i]) {
+			cout << "Main process: thread " << i << " not execute!" << endl;
 		}
 	}
 
 	DWORD dw = WaitForMultipleObjects(t_count, hThread.data(), TRUE, INFINITE);
 
 	for (int i = 0; i < t_count; i++) {
-		DWORD *exitResult = &dwResult.data()[i];
+		DWORD exitResult;
 
-		GetExitCodeThread(hThread[i], exitResult);
+		GetExitCodeThread(hThread[i], &exitResult);
 
-		cout << "Поток № " << ((int)*exitResult + 1) << " завершился." << endl;
+		cout << "Поток № " << (exitResult + 1) << " завершился." << endl;
 	}
 
 	cout << endl;
