@@ -1,102 +1,76 @@
-#pragma once
+Ôªø#pragma once
 
 #include <vector>
 #include <string>
 #include <ctime>
+#include <iomanip>
+
+#include "structures.h"
 
 using namespace std;
 
 const size_t t_count = 3;
-const size_t roles_count = 4;
+const size_t days_count = 3;
 
-enum Roles {
-	L,	// ÎÂÈÚÂÌ‡ÌÚ
-	S,	// ÒÂÊ‡ÌÚ
-	R,	// ˇ‰Ó‚ÓÈ »‚‡ÌÓ‚
-	P	// ÔÓÎÍÓ‚ÌËÍ  ÛÁÌÂˆÓ‚
-};
+size_t day;
 
-struct ThreadData {
-	int role = -1;
-	size_t delta = 0;
-	size_t from = -1;
-	size_t to = -1;
-
-	ThreadData(int role_, size_t delta_, size_t from_, size_t to_) :
-		role(role_),
-		delta(delta_),
-		from(from_),
-		to(to_)
-	{}
-
-	ThreadData() {}
-	
-	void runDelay() {
-		if (this->delta) {
-			Sleep(rand() % this->delta / 5 * 1000);
-		}
-	}
-
-	string getName() {
-		switch (this->role) {
-		case Roles::P:
-			return "ÔÓÎÍÓ‚ÌËÍ  ÛÁÌÂˆÓ‚";
-
-		case Roles::L:
-			return "ÎÂÈÚÂÌ‡ÌÚ";
-
-		case Roles::S:
-			return "ÒÂÊ‡ÌÚ";
-
-		case Roles::R:
-			return "ˇ‰Ó‚ÓÈ »‚‡ÌÓ‚";
-		}
-
-		return "";
-	}
-};
-
-struct TaskAB {
-	int a = 0;
-	int b = 0;
-
-	void gen() {
-		this->a = rand() % 100 + 1;
-		this->b = rand() % 100 + 1;
-	}
-
-	inline bool isEmpty() {
-		return (!this->a || !this->b);
-	}
-};
-
-struct TaskC {
-	int c = 0;
-
-	inline bool isEmpty() {
-		return !this->c;
-	}
-};
-
+vector < ThreadData > thread_data(roles_count); // –∏–∑–±—ã—Ç–æ—á–Ω—ã–π —Ä–∞–∑–º–µ—Ä, —á—Ç–æ–±—ã –∏–º–µ—Ç—å –∏–Ω—Ñ–æ—Ä–º–∞—Ü–∏—é –æ –ö—É–∑–Ω–µ—Ü–æ–≤–µ
 vector < bool > pull;
 vector < bool > fetch;
 vector < TaskAB > task_pull;
 vector < TaskC > task_fetch;
 
 void dumpTask() {
-	cout << "dump task" << endl;
+	if (
+		roles_count != pull.size() ||
+		roles_count != task_pull.size() ||
+		roles_count != fetch.size() ||
+		roles_count != task_fetch.size()
+	) {
+		return;
+	}
+
+	static int roles_order[roles_count] = { Roles::P, Roles::L, Roles::S, Roles::R };
+
+	cout << setw(20) << "–ß–µ–ª–æ–≤–µ–∫" << setw(6) << "pull" << setw(6) << "fetch" << endl;
+	cout << string(32, '=') << endl;
+
+	for (size_t i = 0; i < roles_count; ++i) {
+		int role = roles_order[i];
+
+		cout << setw(20) << thread_data[role].getName();
+		cout << setw(6) << (task_pull[role].isEmpty() ? "–Ω/–¥" : "–æ–∫");
+		cout << setw(6) << (task_fetch[role].isEmpty() ? "–Ω/–¥" : "–æ–∫");
+		cout << endl;
+	}
+
+	cout << endl;
 }
 
 DWORD WINAPI ThreadFuncLS(PVOID pvParam) {
 	ThreadData *data = (ThreadData *)pvParam;
 
-	cout << "«‡ÔÛ˘ÂÌ ÔÓÚÓÍ ÏÎ‡‰¯Â„Ó ÒÓÒÚ‡‚‡: " << data->getName() << "." << endl;
+	cout << "–ó–∞–ø—É—â–µ–Ω –ø–æ—Ç–æ–∫ –º–ª–∞–¥—à–µ–≥–æ —Å–æ—Å—Ç–∞–≤–∞: " << data->getName() << "." << endl;
+	
+	for (size_t curr_day = day; curr_day <= days_count; ++curr_day) {
+		while (curr_day != day) {}
 
-	cout << "ŒÊË‰‡ÌËÂ..." << endl;
+		while (!pull[data->fw]) {}
 
-	while (!pull[data->from]) {}
+		dumpTask();
 
-	cout << "ŒÊË‰‡ÌËÂ Á‡‚Â¯ÂÌÓ..." << endl;
+		task_pull[data->role] = task_pull[data->fw];
+		data->runDelay();
+		pull[data->role] = true;
+
+		while (!fetch[data->bw]) {}
+
+		dumpTask();
+
+		task_fetch[data->role] = task_fetch[data->bw];
+		data->runDelay();
+		fetch[data->role] = true;
+	}
 
 	return 0;
 }
@@ -104,38 +78,78 @@ DWORD WINAPI ThreadFuncLS(PVOID pvParam) {
 DWORD WINAPI ThreadFuncR(PVOID pvParam) {
 	ThreadData *data = (ThreadData *)pvParam;
 
-	cout << "«‡ÔÛ˘ÂÌ ÔÓÚÓÍ ˇ‰Ó‚Ó„Ó: " << data->getName() << "." << endl;
+	cout << "–ó–∞–ø—É—â–µ–Ω –ø–æ—Ç–æ–∫ —Ä—è–¥–æ–≤–æ–≥–æ: " << data->getName() << "." << endl;
+
+	for (size_t curr_day = day; curr_day <= days_count; ++curr_day) {
+		while (curr_day != day) {}
+
+		while (!pull[data->fw]) {}
+
+		dumpTask();
+
+		task_pull[data->role] = task_pull[data->fw];
+		pull[data->role] = true;
+
+		task_fetch[data->role] = task_pull[data->role].calc();
+		fetch[data->role] = true;
+	}
 
 	return 0;
 }
 
 void run_n6_v1() {
-	srand(time((time_t)NULL));
-
 	vector < HANDLE > hThread(t_count);
-	vector < ThreadData > data(t_count);
 
-	pull.assign(roles_count, false);
-	fetch.assign(roles_count, false);
-	task_pull.assign(roles_count, TaskAB());
-	task_fetch.assign(roles_count, TaskC());
+	// –ü–æ–ª–∫–æ–≤–Ω–∏–∫ <-> –õ–µ–π—Ç–µ–Ω–∞–Ω—Ç <-> –°–µ—Ä–∂–∞–Ω—Ç <-> –†—è–¥–æ–≤–æ–π
+	thread_data[Roles::P] = ThreadData(Roles::P, 0, Roles::L, Roles::L);
+	thread_data[Roles::L] = ThreadData(Roles::L, 30, Roles::P, Roles::S);
+	thread_data[Roles::S] = ThreadData(Roles::S, 15, Roles::L, Roles::R);
+	thread_data[Roles::R] = ThreadData(Roles::R, 0, Roles::S, Roles::S);
 
-	data[Roles::L] = ThreadData(Roles::L, 30, Roles::P, Roles::S);
-	data[Roles::S] = ThreadData(Roles::S, 15, Roles::L, Roles::R);
-	data[Roles::R] = ThreadData(Roles::R, 0, Roles::S, Roles::S);
-	
-	for (size_t i = 0; i < t_count; ++i) {
-		LPTHREAD_START_ROUTINE func = (data[i].role == Roles::R ? ThreadFuncR : ThreadFuncLS);
+	for (day = 0; day < days_count;) {
 
-		hThread[i] = CreateThread(NULL, 0, func, (PVOID)&data[i], 0, 0);
+		pull.assign(roles_count, false);
+		fetch.assign(roles_count, false);
+		task_pull.assign(roles_count, TaskAB());
+		task_fetch.assign(roles_count, TaskC());
 
-		if (!hThread[i]) {
-			cout << "Main process: thread " << i << " not execute!" << endl;
+		++day;
+
+		cout << "–ù–∞—Å—Ç—É–ø–∏–ª –¥–µ–Ω—å ‚Ññ " << day << "!" << endl;
+
+		Sleep(1000);
+
+		// –í –ø–µ—Ä–≤—ã–π –¥–µ–Ω—å –ø–æ–¥–Ω–∏–º–∞–µ–º –≤–µ—Å—å —Å–æ—Å—Ç–∞–≤ –Ω–∞ –Ω–æ–≥–∏
+		if (day == 1) {
+			for (size_t i = 0; i < t_count; ++i) {
+				LPTHREAD_START_ROUTINE func = (thread_data[i].role == Roles::R ? ThreadFuncR : ThreadFuncLS);
+
+				hThread[i] = CreateThread(NULL, 0, func, (PVOID)&thread_data[i], 0, 0);
+
+				if (!hThread[i]) {
+					cout << "Main process: thread " << i << " not execute!" << endl;
+				}
+			}
 		}
 
+		Sleep(1000);
+
+		pull[Roles::P] = true;
+		task_pull[Roles::P].gen();
+
+		cout << task_pull[Roles::P] << endl;
+
+		while (!fetch[thread_data[Roles::P].bw]) {}
+
+		dumpTask();
+
+		task_fetch[Roles::P] = task_fetch[thread_data[Roles::P].bw];
+
+		dumpTask();
+
+		cout << task_pull[Roles::P] << endl;
+		cout << task_fetch[Roles::P] << endl;
 	}
-
-
 
 	DWORD dw = WaitForMultipleObjects(1, hThread.data(), TRUE, INFINITE);
 }

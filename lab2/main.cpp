@@ -1,4 +1,4 @@
-#include <iostream>
+ï»¿#include <iostream>
 #include <Windows.h>
 
 #include "n6_v1.h"
@@ -7,28 +7,30 @@
 using namespace std;
 
 int main() {
-	//srand(time(NULL));
+	srand((unsigned int)time(NULL));
 	SetConsoleOutputCP(1251);
 	SetConsoleCP(1251);
 
 	int program_v = 1;
 
-	//cout << "Ââåäèòå íîìåð ïðîãðàììû (1 èëè 2): ";
+	cout << "Ð’Ð¾Ð¸Ð½ÑÐºÐ°Ñ Ñ‡Ð°ÑÑ‚ÑŒ â„– " << (rand() % 90000 + 10000) << ". Ð”Ð¾Ð±Ñ€Ð¾ Ð¿Ð¾Ð¶Ð°Ð»Ð¾Ð²Ð°Ñ‚ÑŒ!" << endl;
+
+	//cout << "Ð’Ð²ÐµÐ´Ð¸Ñ‚Ðµ Ð½Ð¾Ð¼ÐµÑ€ Ð¿Ñ€Ð¾Ð³Ñ€Ð°Ð¼Ð¼Ñ‹ (1 Ð¸Ð»Ð¸ 2): ";
 	//cin >> program_v;
 
 	switch (program_v) {
 	case 1:
-		cout << "Áóäåò çàïóùåíà ïåðâàÿ ïðîãðàììà." << endl;
+		cout << "Ð‘ÑƒÐ´ÐµÑ‚ Ð·Ð°Ð¿ÑƒÑ‰ÐµÐ½Ð° Ð¿ÐµÑ€Ð²Ð°Ñ Ð¿Ñ€Ð¾Ð³Ñ€Ð°Ð¼Ð¼Ð°." << endl;
 		run_n6_v1();
 		break;
 
 	case 2:
-		cout << "Áóäåò çàïóùåíà âòîðàÿ ïðîãðàììà." << endl;
+		cout << "Ð‘ÑƒÐ´ÐµÑ‚ Ð·Ð°Ð¿ÑƒÑ‰ÐµÐ½Ð° Ð²Ñ‚Ð¾Ñ€Ð°Ñ Ð¿Ñ€Ð¾Ð³Ñ€Ð°Ð¼Ð¼Ð°." << endl;
 		run_n6_v2();
 		break;
 
 	default:
-		cout << "Óêàçàí íåèçâåñòíûé íîìåð ïðîãðàììû. Âûõîä." << endl;
+		cout << "Ð£ÐºÐ°Ð·Ð°Ð½ Ð½ÐµÐ¸Ð·Ð²ÐµÑÑ‚Ð½Ñ‹Ð¹ Ð½Ð¾Ð¼ÐµÑ€ Ð¿Ñ€Ð¾Ð³Ñ€Ð°Ð¼Ð¼Ñ‹. Ð’Ñ‹Ñ…Ð¾Ð´." << endl;
 	}
 
 	system("pause");

@@ -26,5 +26,8 @@
     <ClInclude Include="n6_v2.h">
       <Filter>Исходные файлы</Filter>
     </ClInclude>
+    <ClInclude Include="structures.h">
+      <Filter>Исходные файлы</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
