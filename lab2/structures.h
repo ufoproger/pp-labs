@@ -1,10 +1,16 @@
 ﻿#pragma once
 
+#include <vector>
 #include <iostream>
+#include <iomanip>
 #include <string>
 
 using namespace std;
 
+// Количество создаваемых потоков.
+const size_t t_count = 3;
+// Количество дней в месяце.
+const size_t days_count = 30;
 const size_t roles_count = 4;
 
 enum Roles {
@@ -19,7 +25,7 @@ struct TaskC {
 
 	TaskC(int c_ = 0) : c(c_) {}
 
-	inline bool isEmpty() {
+	inline bool isEmpty() const {
 		return (!this->c);
 	}
 };
@@ -79,26 +85,46 @@ struct ThreadData {
 
 	void runDelay() const {
 		if (this->delta) {
-			Sleep(rand() % this->delta / 5 * 1000);
+			Sleep(((DWORD)this->delta / 15 + 1) * 1000);
 		}
 	}
 
 	string getName() const {
 		switch (this->role) {
 		case Roles::P:
-			return "полковник Кузнецов";
+			return "Полковник Кузнецов";
 
 		case Roles::L:
-			return "лейтенант";
+			return "Лейтенант";
 
 		case Roles::S:
-			return "сержант";
+			return "Сержант";
 
 		case Roles::R:
-			return "рядовой Иванов";
+			return "Рядовой Иванов";
 		}
 
 		return "";
 	}
 };
 
+void DumpTask(const vector < ThreadData > &data, const vector < TaskAB > &pull, const vector < TaskC > &fetch) {
+	// Порядок вывода строк таблицы
+	static int roles_order[roles_count] = { Roles::P, Roles::L, Roles::S, Roles::R };
+
+	// Форматируем шапку
+	cout << setw(20) << "Человек" << setw(6) << "pull" << setw(6) << "fetch" << endl;
+	cout << string(32, '=') << endl;
+
+	// Выводим строки
+	for (size_t i = 0; i < roles_count; ++i) {
+		int role = roles_order[i];
+
+		cout << setw(20) << data[role].getName();
+		cout << setw(6) << (pull[role].isEmpty() ? "н/д" : "ок");
+		cout << setw(6) << (fetch[role].isEmpty() ? "н/д" : "ок");
+		cout << endl;
+	}
+
+	cout << endl;
+}
