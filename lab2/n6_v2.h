@@ -162,7 +162,9 @@ namespace v2 {
 
 			Sleep(1000);
 
+			EnterCriticalSection(&cs_cout);
 			cout << "Полковник готов к началу нового дня." << endl;
+			LeaveCriticalSection(&cs_cout);
 			EnterSynchronizationBarrier(&sb_day, NULL);
 			
 			EnterCriticalSection(&cs_cout);
