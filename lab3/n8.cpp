@@ -10,23 +10,29 @@ using namespace std;
 #define Vn(sem, n) ReleaseSemaphore(sem, n, NULL)
 #define V(sem) Vn(sem, 1)
 
-HANDLE hPot;
-HANDLE hChef;
-HANDLE hCout;
+#define SEM_POT_NAME "pot"
+#define SEM_CHEF_NAME "chef"
+#define SEM_COUT_NAME "cout"
 
-DWORD WINAPI ThreadFuncCannibal(PVOID pvParam) {
-	size_t index = PtrToUlong(pvParam);
+HANDLE hPot, hChef, hCout;
+
+DWORD WINAPI ThreadFuncWildman(PVOID pvParam) {
+	long index = PtrToUlong(pvParam);
 
 	P(hCout);
-	cout << "Выполняется поток каннибала № " << index << "." << endl;
+	cout << "Выполняется поток дикаря № " << index << "." << endl;
 	V(hCout);
 
 	for (;;) {
-		Sleep(rand() % 8 * 1000);
+		Sleep(rand() % 10 * 500);
+
+		P(hCout);
+		cout << "Дикарь № " << index << " захотел есть..." << endl;
+		V(hCout);
 
 		P(hPot);
 		P(hCout);
-		cout << "Каннибал № " << index << " взял из котла кусок мяса..." << endl;
+		cout << "Дикарь № " << index << " взял кусок мяса из котла." << endl;
 		V(hCout);
 		V(hChef);
 	}
@@ -35,21 +41,27 @@ DWORD WINAPI ThreadFuncCannibal(PVOID pvParam) {
 }
 
 DWORD WINAPI ThreadFuncChef(PVOID pvParam) {
-	size_t m = PtrToUlong(pvParam);
+	long m = PtrToUlong(pvParam);
 
 	P(hCout);
 	cout << "Выполняется поток повара." << endl;
 	V(hCout);
 
 	for (;;) {
-		for (size_t i = 0; i < m; ++i) {
+		for (int i = 0; i < m; ++i) {
 			P(hChef);
 		}
 
 		P(hCout);
-		cout << "Добавленное поваром количество куском мяса в котёл: " << m << " шт." << endl;
+		cout << "Повар просыпается..." << endl;
 		V(hCout);
+
+		Sleep(1000);
+
+		P(hCout);
 		Vn(hPot, m);
+		cout << "Повар добавил мясо в котёл: " << m << " шт." << endl;
+		V(hCout);
 	}
 
 	return 0;
@@ -62,7 +74,7 @@ int main(int argc, char *argv[]) {
 
 	cout << "Аргументы командной строки: " << endl;
 
-	for (size_t i = 0; i < argc; ++i) {
+	for (int i = 0; i < argc; ++i) {
 		cout << "\t" << (i + 1) << ") " << argv[i] << endl;
 	}
 
@@ -70,17 +82,21 @@ int main(int argc, char *argv[]) {
 
 	if (argc == 3) {
 		string role = string(argv[1]);
-		size_t value = stoi(string(argv[2]));
+		long value = stoi(string(argv[2]));
+
+		hPot = OpenSemaphore(SEMAPHORE_ALL_ACCESS, TRUE, SEM_POT_NAME);
+		hChef = OpenSemaphore(SEMAPHORE_ALL_ACCESS, TRUE, SEM_CHEF_NAME);
+		hCout = OpenSemaphore(SEMAPHORE_ALL_ACCESS, TRUE, SEM_COUT_NAME);
 
 		if (role == "/chef") {
 			ThreadFuncChef(ULongToPtr(value));
 		}
-		else if (role == "/cannibal") {
-			ThreadFuncCannibal(ULongToPtr(value));
+		else if (role == "/wildman") {
+			ThreadFuncWildman(ULongToPtr(value));
 		}
 	}
 	else {
-		size_t n, m;
+		long n, m;
 		cout << "Количество дикарей и кусков мяса в котле: ";
 		cin >> n >> m;
 
@@ -94,26 +110,25 @@ int main(int argc, char *argv[]) {
 		cout << "Выберите реализацию задания (t = через потоки, p = через процессы): ";
 		cin >> method;
 
-		hPot = CreateSemaphore(NULL, m, m, NULL);
-		hChef = CreateSemaphore(NULL, 0, m, NULL);
-		hCout = CreateSemaphore(NULL, 1, 1, NULL);
+		hPot = CreateSemaphore(NULL, m, m, SEM_POT_NAME);
+		hChef = CreateSemaphore(NULL, 0, m, SEM_CHEF_NAME);
+		hCout = CreateSemaphore(NULL, 1, 1, SEM_COUT_NAME);
+
+		vector < HANDLE > hChildren(n + 1);
 
 		switch (method) {
 		case 't':
 		case 'T': {
 			cout << "Выбрана реализация через потоки..." << endl;
 
-			vector < HANDLE > hThreads(n + 1);
-
-			for (size_t i = 0; i <= n; i++)
+			for (int i = 0; i <= n; i++)
 			{
-				LPTHREAD_START_ROUTINE func = (i < n) ? ThreadFuncCannibal : ThreadFuncChef;
-				size_t param = (i < n) ? (i + 1) : m;
+				LPTHREAD_START_ROUTINE func = (i < n) ? ThreadFuncWildman : ThreadFuncChef;
+				long param = (i < n) ? (i + 1) : m;
 
-				hThreads[i] = CreateThread(NULL, 0, func, UlongToPtr(param), 0, NULL);
+				hChildren[i] = CreateThread(NULL, 0, func, UlongToPtr(param), 0, NULL);
 			}
 
-			WaitForMultipleObjects(n + 1, hThreads.data(), TRUE, INFINITE);
 			break;
 		}
 
@@ -121,47 +136,53 @@ int main(int argc, char *argv[]) {
 		case 'P': {
 			cout << "Выбрана реализация через процессы..." << endl;
 
-			vector < STARTUPINFO >siProcesses(n + 1);
-			vector < PROCESS_INFORMATION > piProcesses(n + 1);
+			vector < STARTUPINFO >si(n + 1);
+			vector < PROCESS_INFORMATION > pi(n + 1);
 
-			for (size_t i = 0; i <= n; ++i) {
-				ZeroMemory(&siProcesses[i], sizeof(siProcesses[i]));
-				siProcesses[i].cb = sizeof(siProcesses[i]);
-				ZeroMemory(&piProcesses[i], sizeof(piProcesses[i]));
+			for (int i = 0; i <= n; ++i) {
+				ZeroMemory(&si[i], sizeof(si[i]));
+				si[i].cb = sizeof(si[i]);
+				ZeroMemory(&pi[i], sizeof(pi[i]));
 
 				string cmd(argv[0]);
 
 				if (i < n) {
-					cmd += " /cannibal " + to_string(i);
+					cmd += " /wildman " + to_string(i + 1);
 				}
 				else {
 					cmd += " /chef " + to_string(m);
 				}
 
-				CreateProcess(NULL,   // No module name (use command line)
-					const_cast<char *>(cmd.c_str()),        // Command line
-					NULL,           // Process handle not inheritable
-					NULL,           // Thread handle not inheritable
-					FALSE,          // Set handle inheritance to FALSE
-					0,              // No creation flags
-					NULL,           // Use parent's environment block
-					NULL,           // Use parent's starting directory 
-					&siProcesses[i],            // Pointer to STARTUPINFO structure
-					&piProcesses[i]           // Pointer to PROCESS_INFORMATION structure
+				CreateProcess(NULL,		// No module name (use command line)
+					const_cast<char *>(cmd.c_str()),	// Command line
+					NULL,			// Process handle not inheritable
+					NULL,			// Thread handle not inheritable
+					TRUE,			// Set handle inheritance to FALSE
+					0,				// No creation flags
+					NULL,			// Use parent's environment block
+					NULL,			// Use parent's starting directory 
+					&si[i],			// Pointer to STARTUPINFO structure
+					&pi[i]			// Pointer to PROCESS_INFORMATION structure
 				);
-			}
 
-			///WaitForSingleObject(pi.hProcess, INFINITE);
+				hChildren[i] = pi[i].hProcess;
+			}
 
 			break;
 		}
 
 		default:
 			cout << "Неизвестная реализация!" << endl;
+			hChildren.clear();
 		}
+		
+		WaitForMultipleObjects((DWORD)hChildren.size(), hChildren.data(), TRUE, INFINITE);
 	}
 
-	Sleep(3000);
+	CloseHandle(hPot);
+	CloseHandle(hChef);
+	CloseHandle(hCout);
+
 	system("pause");
 
 	return 0;
